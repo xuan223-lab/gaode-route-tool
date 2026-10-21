@@ -4,7 +4,9 @@ import json
 import os
 import threading
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+from paths import app_base_dir
+
+BASE_DIR = app_base_dir()
 DATA_DIR = os.path.join(BASE_DIR, "data")
 DOWNLOAD_DIR = os.path.join(BASE_DIR, "downloads")
 

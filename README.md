@@ -1,6 +1,11 @@
 # 高德路径搜索与下载工具
 
+![version](https://img.shields.io/badge/version-v0.1.0-blue)
+![license](https://img.shields.io/badge/license-MIT-green)
+
 一个**只在本机浏览器运行**的网页小工具：输入起终点搜索高德路线，看地图、看分段导航、导出 CSV / GeoJSON（WGS84），并支持坐标互转、Excel 批量导入、里程统计、今日计划、轨迹录制与离线瓦片缓存。
+
+> **开箱即用**：不想装 Python？直接到 [Releases](https://github.com/xuan223-lab/gaode-route-tool/releases) 下载 `GaodeRouteTool.exe`，双击即可运行。
 
 ## 功能
 
@@ -20,6 +25,18 @@
 
 ## 运行
 
+### 方式一：下载 exe（推荐，无需 Python）
+
+1. 到 [Releases](https://github.com/xuan223-lab/gaode-route-tool/releases) 下载 `GaodeRouteTool.exe`；
+2. 放到任意目录，双击运行；
+3. 浏览器会自动打开 `http://127.0.0.1:8000`；
+4. 首次使用到「设置」页粘贴高德 Key。
+
+> 数据（`data/`、`downloads/`、`tiles/`）会生成在 **exe 同级目录**，重启不丢失。
+> 关闭黑色命令行窗口即停止服务。
+
+### 方式二：从源码运行
+
 1. 安装 Python 3.8+（若未安装，请到 python.org 下载，安装时勾选 "Add to PATH"）。
 2. 安装依赖（只需一个库）：
 
@@ -38,6 +55,22 @@
    浏览器会自动打开 `http://127.0.0.1:8000`（若没自动打开，手动访问该地址）。
 
 4. 首次使用，先到「**设置**」页粘贴你的高德 **Web 服务 Key**（申请见下）。
+
+## 打包为 exe
+
+```bat
+build_exe.bat
+```
+
+或手动执行：
+
+```bat
+pip install pyinstaller
+python -m PyInstaller --noconfirm --clean --onefile --name GaodeRouteTool ^
+  --add-data "static;static" app.py
+```
+
+产物位于 `dist\GaodeRouteTool.exe`（约 29 MB，单文件，内含前端静态资源）。
 
 ## 测试
 
@@ -67,7 +100,9 @@ app.py              后端主程序（标准库 http.server）
 amap_client.py      高德接口封装（地理/逆地理编码、驾车/步行/骑行/公交）
 coord.py            GCJ-02 ↔ WGS84 坐标互转
 storage.py          本地 JSON 持久化
+paths.py            路径解析（兼容源码运行与 exe 运行）
 run_tests.py        测试运行器
+build_exe.bat       一键打包为 exe
 tests/              unittest 测试
 static/             前端页面（index.html / style.css / app.js / leaflet/）
 data/               本地数据（config.json、history.json、plan.json）

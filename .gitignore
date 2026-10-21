@@ -16,3 +16,11 @@ backups/
 
 # 交付物（说明书/报告/源码包/截图，体积大且非源码，不入库）
 交付物/
+
+# 打包产物（exe 作为 Release 附件上传，不放进仓库）
+dist/
+build/
+_build/
+_pylib/
+_pip_tmp/
+*.spec

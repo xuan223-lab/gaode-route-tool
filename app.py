@@ -25,9 +25,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import amap_client
 import storage
 from coord import parse_coord, wgs84_to_gcj02, gcj02_to_wgs84
+from paths import app_base_dir, resource_dir
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-STATIC_DIR = os.path.join(BASE_DIR, "static")
+BASE_DIR = app_base_dir()
+STATIC_DIR = os.path.join(resource_dir(), "static")
 TILES_DIR = os.path.join(BASE_DIR, "tiles")
 PORT = 8000
 
