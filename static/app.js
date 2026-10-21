@@ -475,6 +475,10 @@ document.getElementById('clearPlanBtn').onclick = () => {
   if (!confirm('确定清空今日计划？')) return;
   planItems = []; savePlan(); renderPlan();
 };
+document.getElementById('planSaveBtn').onclick = async () => {
+  await savePlan();
+  toast('今日计划已保存');
+};
 
 // ===== 设置 =====
 async function loadConfig() {

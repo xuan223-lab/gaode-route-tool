@@ -63,5 +63,14 @@ class TestCssCoverage(unittest.TestCase):
             self.assertIn('id="%s"' % eid, html)
 
 
+class TestManualSave(unittest.TestCase):
+    def test_save_button_wired(self):
+        html = _read("index.html")
+        self.assertIn('id="planSaveBtn"', html, "今日计划缺少手动保存按钮")
+        js = _read("app.js")
+        self.assertIn("getElementById('planSaveBtn')", js, "保存按钮未在 app.js 中绑定")
+        self.assertIn("savePlan()", js, "保存按钮未调用 savePlan")
+
+
 if __name__ == "__main__":
     unittest.main()
