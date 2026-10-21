@@ -210,5 +210,30 @@ class TestFriendlyError(unittest.TestCase):
         self.assertIn("驾车", str(ctx.exception))
 
 
+class TestGeocodeRgeoError(unittest.TestCase):
+    @patch.object(amap_client, "_http_get_json",
+                  return_value={"status": "0", "info": "INVALID_USER_KEY", "infocode": "10001"})
+    def test_geocode_invalid_key_friendly(self, mock_get):
+        with self.assertRaises(AmapError) as ctx:
+            amap_client.geocode("k", "天安门")
+        self.assertIn("Key", str(ctx.exception))
+        self.assertNotIn("INVALID_USER_KEY", str(ctx.exception))
+
+    @patch.object(amap_client, "_http_get_json",
+                  return_value={"status": "0", "info": "INSUFFICIENT_PRIVILEGES", "infocode": "10012"})
+    def test_regeo_privilege_friendly(self, mock_get):
+        with self.assertRaises(AmapError) as ctx:
+            amap_client.regeo("k", 116.4, 39.9)
+        self.assertIn("权限", str(ctx.exception))
+        self.assertNotIn("INSUFFICIENT_PRIVILEGES", str(ctx.exception))
+
+    @patch.object(amap_client, "_http_get_json",
+                  return_value={"status": "1", "info": "OK"})
+    def test_geocode_no_result_friendly(self, mock_get):
+        with self.assertRaises(AmapError) as ctx:
+            amap_client.geocode("k", "不存在的地方")
+        self.assertIn("未找到", str(ctx.exception))
+
+
 if __name__ == "__main__":
     unittest.main()

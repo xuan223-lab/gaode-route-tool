@@ -83,8 +83,12 @@ def geocode(key, address):
     """地址 -> (lng, lat, formatted_address)，坐标为 GCJ-02。"""
     url = GEOCODE_URL + "?" + urllib.parse.urlencode({"key": key, "address": address})
     data = _http_get_json(url)
-    if data.get("status") != "1" or not data.get("geocodes"):
-        raise AmapError("地理编码失败：%s" % (data.get("info") or "未找到该地址"))
+    if data.get("status") != "1":
+        info = data.get("info") or "未知错误"
+        code = str(data.get("infocode") or "")
+        raise AmapError("地理编码失败：%s" % friendly_error(info, code))
+    if not data.get("geocodes"):
+        raise AmapError("地理编码失败：未找到该地址")
     g = data["geocodes"][0]
     loc = str(g.get("location", "")).split(",")
     if len(loc) != 2:
@@ -98,7 +102,9 @@ def regeo(key, lng, lat):
         "key": key, "location": "%.6f,%.6f" % (lng, lat)})
     data = _http_get_json(url)
     if data.get("status") != "1":
-        raise AmapError("逆地理编码失败：%s" % (data.get("info") or "未知错误"))
+        info = data.get("info") or "未知错误"
+        code = str(data.get("infocode") or "")
+        raise AmapError("逆地理编码失败：%s" % friendly_error(info, code))
     ac = (data.get("regeocode") or {}).get("addressComponent") or {}
     province = ac.get("province") or ""
     city = ac.get("city") or ""
