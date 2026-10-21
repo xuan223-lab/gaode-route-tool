@@ -1,0 +1,15 @@
+# Python 缓存
+__pycache__/
+*.py[cod]
+
+# 本地运行时数据：含高德 Key、搜索历史、今日计划等个人数据，切勿入库
+data/
+
+# 导出与缓存目录
+downloads/
+tiles/
+backups/
+
+# 临时文件
+*.tmp
+*.log

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>高德路径搜索与下载工具</title>
+  <link rel="stylesheet" href="/static/leaflet/leaflet.css">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>🗺️ 高德路径搜索与下载工具</h1>
+    <span class="subtitle">本地运行 · 路线导出 WGS84</span>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="search">路线搜索</button>
+    <button class="tab" data-tab="convert">坐标 / 轨迹</button>
+    <button class="tab" data-tab="batch">批量导入</button>
+    <button class="tab" data-tab="plan">今日计划 <span id="planBadge" class="badge hidden">0</span></button>
+    <button class="tab" data-tab="settings">设置</button>
+  </nav>
+
+  <!-- 路线搜索 -->
+  <section id="panel-search" class="panel active">
+    <div class="search-layout">
+      <div class="side">
+        <div class="card">
+          <div class="card-title">搜索路线</div>
+          <label>起点（地址 或 经度,纬度 WGS84）</label>
+          <div style="display:flex; gap:8px;">
+            <input id="originInput" type="text" placeholder="例如：北京市朝阳区阜通东大街 或 116.481,39.99" style="flex:1">
+            <button type="button" id="locateBtn" title="用当前定位填入起点">📍</button>
+          </div>
+          <label>终点（地址 或 经度,纬度 WGS84）</label>
+          <input id="destInput" type="text" placeholder="例如：天安门 或 116.397,39.909">
+          <label>出行方式</label>
+          <div class="mode-group" id="modeGroup">
+            <button class="mode-btn active" data-mode="driving">🚗 驾车</button>
+            <button class="mode-btn" data-mode="walking">🚶 步行</button>
+            <button class="mode-btn" data-mode="riding">🚴 骑行</button>
+            <button class="mode-btn" data-mode="transit">🚌 公交</button>
+          </div>
+          <div id="strategyWrap">
+            <label>驾车策略</label>
+            <select id="strategySelect">
+              <option value="0">最快捷（速度优先）</option>
+              <option value="2">最短距离</option>
+              <option value="1">少收费（费用优先）</option>
+              <option value="4">躲避拥堵</option>
+              <option value="6">不走高速</option>
+            </select>
+          </div>
+          <div id="waypointsWrap">
+            <label>途经点（可选，仅驾车）</label>
+            <div id="waypointsList"></div>
+            <button type="button" id="addWaypointBtn" class="link-btn">＋ 添加途经点</button>
+          </div>
+          <button class="primary" id="searchBtn">🔍 搜索</button>
+        </div>
+
+        <div class="card">
+          <div class="card-title">搜索历史
+            <button class="link-btn" id="clearHistoryBtn">清空</button>
+          </div>
+          <ul id="historyList" class="history-list"><li class="muted">暂无历史记录</li></ul>
+        </div>
+      </div>
+
+      <div class="main">
+        <div id="map"></div>
+        <div id="resultPanel" class="card result hidden">
+          <div class="summary">
+            <div class="summary-item">总距离：<b id="distanceSpan">-</b></div>
+            <div class="summary-item">预计耗时：<b id="durationSpan">-</b></div>
+            <div class="summary-item">方式：<b id="modeSpan">-</b></div>
+          </div>
+          <div class="result-actions">
+            <button id="exportCsvBtn">导出 CSV</button>
+            <button id="exportGeojsonBtn">导出 GeoJSON</button>
+            <button id="addToPlanBtn" class="primary">＋ 加入今日计划</button>
+          </div>
+          <div class="card-title">分段导航指令</div>
+          <div class="table-wrap">
+            <table id="stepsTable">
+              <thead><tr><th>序号</th><th>导航指令</th><th>道路</th><th>动作</th><th>距离</th><th>耗时</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 坐标转换 -->
+  <section id="panel-convert" class="panel">
+    <div class="card narrow">
+      <div class="card-title">GCJ-02 ↔ WGS84 坐标互转</div>
+      <label>经度</label>
+      <input id="convLng" type="text" placeholder="116.481028">
+      <label>纬度</label>
+      <input id="convLat" type="text" placeholder="39.989643">
+      <label>转换方向</label>
+      <select id="convDir">
+        <option value="wgs2gcj">WGS84 → GCJ-02（给高德用）</option>
+        <option value="gcj2wgs">GCJ-02 → WGS84（给 GPS/导出用）</option>
+      </select>
+      <button class="primary" id="convBtn">转换</button>
+      <div id="convResult" class="conv-result hidden"></div>
+    </div>
+
+    <div class="card narrow">
+      <div class="card-title">轨迹录制</div>
+      <p class="muted small">用浏览器定位持续采样当前位置，停止后可导出 WGS84 的 GeoJSON / CSV。</p>
+      <div class="row">
+        <button id="startRecordBtn" class="primary">▶ 开始录制</button>
+        <button id="stopRecordBtn" disabled>⏹ 停止</button>
+      </div>
+      <div class="summary"><div class="summary-item">已记录：<b id="recordCount">0</b> 个点</div></div>
+      <div class="result-actions">
+        <button id="exportTrackGeojsonBtn">导出轨迹 GeoJSON</button>
+        <button id="exportTrackCsvBtn">导出轨迹 CSV</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 批量导入 -->
+  <section id="panel-batch" class="panel">
+    <div class="card">
+      <div class="card-title">Excel 批量导入（列：起点 / 终点 / 出行方式 / 备注）</div>
+      <div class="row">
+        <input type="file" id="fileInput" accept=".xlsx,.csv">
+        <button id="parseBtn">① 解析文件</button>
+        <span class="muted">无出行方式的行，使用默认方式：</span>
+        <select id="batchDefaultMode">
+          <option value="driving">驾车</option>
+          <option value="walking">步行</option>
+          <option value="riding">骑行</option>
+        </select>
+        <span class="muted">驾车策略：</span>
+        <select id="batchStrategy">
+          <option value="0">最快捷</option>
+          <option value="2">最短距离</option>
+          <option value="1">少收费</option>
+          <option value="4">躲避拥堵</option>
+          <option value="6">不走高速</option>
+        </select>
+      </div>
+      <div class="row">
+        <button class="primary" id="batchSearchBtn" disabled>② 搜索全部路线</button>
+        <span id="batchStatus" class="muted"></span>
+      </div>
+      <div id="batchPreview" class="hidden">
+        <div class="card-title">已解析的起终点</div>
+        <div class="table-wrap"><table id="batchPreviewTable"></table></div>
+      </div>
+      <div id="batchResult" class="hidden">
+        <div class="card-title">搜索结果</div>
+        <div class="result-actions">
+          <button id="exportStatsBtn">导出里程统计表(CSV)</button>
+          <button id="exportBatchGeojsonBtn">导出全部路线(GeoJSON)</button>
+          <button id="exportBatchCsvBtn">导出全部路线(CSV)</button>
+        </div>
+        <div class="table-wrap"><table id="batchResultTable"></table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 今日计划 -->
+  <section id="panel-plan" class="panel">
+    <div class="card">
+      <div class="card-title">今日计划
+        <span class="muted" id="planDate"></span>
+        <button class="link-btn" id="clearPlanBtn">清空</button>
+      </div>
+      <div class="summary">
+        <div class="summary-item">路线条数：<b id="planCount">0</b></div>
+        <div class="summary-item">总里程：<b id="planTotalKm">0</b> 公里</div>
+      </div>
+      <div class="result-actions">
+        <button id="planExportStatsBtn">导出里程统计表(CSV)</button>
+        <button id="planExportGeojsonBtn">导出全部路线(GeoJSON)</button>
+        <button id="planExportCsvBtn">导出全部路线(CSV)</button>
+      </div>
+      <div class="table-wrap">
+        <table id="planTable">
+          <thead><tr><th>备注</th><th>起点</th><th>终点</th><th>方式</th><th>距离</th><th>耗时</th><th>操作</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 设置 -->
+  <section id="panel-settings" class="panel">
+    <div class="card narrow">
+      <div class="card-title">高德 Key 设置</div>
+      <label>Web 服务 API Key</label>
+      <input id="keyInput" type="text" placeholder="粘贴你的高德 Web 服务 Key">
+      <button class="primary" id="saveKeyBtn">保存</button>
+      <div id="keyStatus" class="muted"></div>
+      <p class="muted small">Key 保存在本地 data/config.json，只在本机使用，不会上传。申请入口：lbs.amap.com（控制台 → 应用管理 → 添加 Key，服务平台选「Web 服务」）。</p>
+    </div>
+
+    <div class="card narrow">
+      <div class="card-title">备份 / 恢复</div>
+      <p class="muted small">把 data/ 与 downloads/ 打包为 zip；或从 zip 恢复。恢复前会自动把当前数据备份到 backups/ 目录。</p>
+      <div class="row">
+        <button id="backupBtn">⬇ 导出备份(zip)</button>
+        <input type="file" id="restoreFile" accept=".zip">
+        <button id="restoreBtn">⬆ 导入恢复</button>
+      </div>
+      <div id="restoreStatus" class="muted"></div>
+    </div>
+  </section>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="/static/leaflet/leaflet.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>

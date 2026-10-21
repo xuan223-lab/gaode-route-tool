@@ -1,0 +1,2 @@
+# 除 openpyxl 外，其余均为 Python 标准库，无需额外安装。
+openpyxl>=3.0.0
